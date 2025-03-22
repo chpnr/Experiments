@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Leaflet Dynamic Route Selection</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <style>
+        #map { height: 600px; width: 100%; }
+        #reset { margin: 10px; padding: 5px 10px; font-size: 16px; cursor: pointer; }
+    </style>
+</head>
+<body>
+
+<button id="reset">Reset Selection</button>
+<div id="map"></div>
+
+<script>
+    var map = L.map('map', { crs: L.CRS.Simple, minZoom: -5 });
+
+    var maxY = 470;
+    var bounds = [[0, 0], [487.68, 609.6]];
+    var image = L.imageOverlay('uqm_map_full.png', bounds).addTo(map);
+    map.fitBounds(bounds);
+
+    var yx = L.latLng;
+    var xy = (x, y) => yx(maxY - y, x);
+
+    var nodes = {
+        A1: xy(50, 470), A2: xy(50, 455), B1: xy(20, 370), B2: xy(60, 330),
+        B3: xy(40, 295), C1: xy(20, 190), C2: xy(60, 155), C3: xy(40, 105),
+        D1: xy(35, 43), D2: xy(50, 55), E1: xy(200, 470), E2: xy(138, 455)
+    };
+
+    var routes = {
+        A1: { B1: [nodes.A1, nodes.B1], E1: [nodes.A1, nodes.E1] },
+        B1: { C1: [nodes.B1, nodes.C1] },
+        C1: { D1: [nodes.C1, nodes.D1] },
+        E1: { E2: [nodes.E1, nodes.E2] }
+    };
+
+    var selectedNodes = [];
+    var routeLine = null;
+
+    function highlightRoute(start, end) {
+        if (routeLine) {
+            map.removeLayer(routeLine);
+        }
+        if (routes[start] && routes[start][end]) {
+            routeLine = L.polyline(routes[start][end], { color: 'blue', weight: 5 }).addTo(map);
+        } else if (routes[end] && routes[end][start]) {
+            routeLine = L.polyline(routes[end][start], { color: 'blue', weight: 5 }).addTo(map);
+        } else {
+            alert("No direct route between selected nodes!");
+            selectedNodes = [];
+        }
+    }
+
+    Object.entries(nodes).forEach(([name, coords]) => {
+        L.marker(coords).addTo(map)
+            .bindPopup(name)
+            .on('click', function () {
+                if (selectedNodes.length < 2) {
+                    selectedNodes.push(name);
+                    if (selectedNodes.length === 2) {
+                        highlightRoute(selectedNodes[0], selectedNodes[1]);
+                    }
+                }
+            });
+    });
+
+    document.getElementById("reset").addEventListener("click", function () {
+        selectedNodes = [];
+        if (routeLine) {
+            map.removeLayer(routeLine);
+        }
+    });
+
+    map.setView([maxY / 2, 180], 2);
+</script>
+
+</body>
+</html>
